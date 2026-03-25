@@ -1,0 +1,33 @@
+plugins {
+    id 'java'
+    id 'application'
+    // Official plugin to handle JavaFX in Gradle
+    id 'org.openjfx.javafxplugin' version '0.1.0'
+}
+
+group = 'com.matchinggame'
+version = '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+// JavaFX Configuration
+javafx {
+    version = "21" // Stable version compatible with Java 21-23
+    modules = [ 'javafx.controls', 'javafx.fxml' ]
+}
+
+dependencies {
+    testImplementation platform('org.junit:junit-bom:5.10.0')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+}
+
+application {
+    // This will be the main class that launches the GUI
+    mainClass = 'com.matchinggame.client.MemoryApp'
+}
+
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+}
