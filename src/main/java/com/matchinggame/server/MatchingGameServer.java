@@ -24,9 +24,13 @@ public class MatchingGameServer {
 			serverSocket = new ServerSocket(serverPort);
 			System.out.println("Server is listening on port: " + serverPort);
 
+            //mutithreading
 			while(true){
 				Socket clientSocket = serverSocket.accept();
 				System.out.println("New client connected from " + clientSocket.getInetAddress());
+				PlayerSession playerSession = new PlayerSession(clientSocket);
+				Thread playerThread = new Thread(playerSession);
+				playerThread.start();
 			}
 		}
 		catch (IOException ioException){
