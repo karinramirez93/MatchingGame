@@ -41,6 +41,7 @@ public class ClientMain {
             });
             listenerThread.start();
 
+            // user input to send to the server
             String userInput;
             while ((userInput = userInputReader.readLine()) != null){
                 writer.println(userInput);
