@@ -18,6 +18,8 @@ public class PlayerSession implements Runnable{
     private PrintWriter writer;
     private String username; // identify the player inside the game
     private boolean registered; // verify if the client has completed registration
+    //stores the active game once a match starts
+    private GameRoom gameRoom;
 
     private final MatchingGameServer matchingGameServer; //notify when the player finishes registration
 
@@ -38,6 +40,16 @@ public class PlayerSession implements Runnable{
     public String getUsername() {
         return username;
     }
+    // assign the active game room to current players
+    public void setGameRoom(GameRoom gameRoom) {
+        this.gameRoom = gameRoom;
+    }
+    //return the active game room for this player
+    public GameRoom getGameRoom() {
+        return gameRoom;
+    }
+
+
     //request a valid username from client before allowing normal communication with the server
     // format USERNAME playername
     // @throws IOException if the client disconnects during registration

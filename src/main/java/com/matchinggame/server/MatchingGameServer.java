@@ -42,13 +42,10 @@ public class MatchingGameServer {
 			PlayerSession firstPlayer = waitingPlayers.remove(0);
 			PlayerSession secondPlayer = waitingPlayers.remove(0);
 
-			System.out.println("Match ready: " + firstPlayer.getUsername() + " VS " + secondPlayer.getUsername());
+			System.out.println("Match found: " + firstPlayer.getUsername() + " VS " + secondPlayer.getUsername());
 
-			firstPlayer.sendMessage("MATCH_READY Opponent: " + secondPlayer.getUsername());
-			secondPlayer.sendMessage("MATCH_READY Opponent: " + firstPlayer.getUsername());
-
-			firstPlayer.sendMessage("YOUR_ROLE PLAYER_ONE");
-			secondPlayer.sendMessage("YOUR_ROLE PLAYER_TWO");
+			GameRoom gameRoom = new GameRoom(firstPlayer, secondPlayer);
+			gameRoom.startMatch();
 		}
 	}
 
