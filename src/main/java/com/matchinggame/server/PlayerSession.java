@@ -19,8 +19,11 @@ public class PlayerSession implements Runnable{
     private String username; // identify the player inside the game
     private boolean registered; // verify if the client has completed registration
 
-    public PlayerSession(Socket clientSocket) {
+    private final MatchingGameServer matchingGameServer; //notify when the player finishes registration
+
+    public PlayerSession(Socket clientSocket, MatchingGameServer matchingGameServer) {
         this.clientSocket = clientSocket;
+        this.matchingGameServer = matchingGameServer;
 
         try{
             this.reader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
@@ -70,6 +73,9 @@ public class PlayerSession implements Runnable{
 
             writer.println("USERNAME_ACCEPTED: " + username);
             System.out.println("Register player: " + username);
+
+            //add player to lobby after registered to wait for an opponent
+            matchingGameServer.addPlayerToLobby(this);
         }
     }
 
@@ -101,6 +107,12 @@ public class PlayerSession implements Runnable{
         }
         catch(IOException ioException){
             System.out.println("Error closing socket: " + ioException.getMessage());
+        }
+    }
+    //send a message from the server to a client
+    public void sendMessage(String message){
+        if(writer != null){
+            writer.println(message);
         }
     }
 
