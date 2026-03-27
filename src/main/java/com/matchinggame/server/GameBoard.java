@@ -54,6 +54,18 @@ public class GameBoard {
         }
         return boardText.toString();
     }
+    //check whether all cards in the board are matched
+    //returns true if all cards are matched
+    public boolean areAllCardsRevealed(){
+        for(int row = 0; row < cards.length; row++){
+            for(int column = 0; column < cards[row].length; column++){
+                if(!cards[row][column].isMatched()){
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
 
 
 

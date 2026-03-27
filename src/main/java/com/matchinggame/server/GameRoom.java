@@ -11,6 +11,8 @@ public class GameRoom {
     private int firstColumn;
     private int secondRow;
     private int secondColumn;
+    private int firstPlayerScore = 0;
+    private int secondPlayerScore =0;
 
     //constructor
     public GameRoom(PlayerSession firstPlayer, PlayerSession secondPlayer) {
@@ -91,6 +93,26 @@ public class GameRoom {
             if(firstSelectedCard.getSymbol().equals(secondSelectedCard.getSymbol())){
                 broadcastMessage("MATCH_FOUND " + playerSession.getUsername());
 
+                //marks both cards as permanently matched
+                firstSelectedCard.markAsMatched();
+                secondSelectedCard.markAsMatched();
+
+                //update score for players
+                if(playerSession == firstPlayer){
+                    firstPlayerScore++;
+                }
+                else{
+                    secondPlayerScore++;
+                }
+                //show score bar
+                broadcastMessage("SCORE: " + firstPlayer.getUsername() + " " + firstPlayerScore + " Vs " + secondPlayer.getUsername() + " " + secondPlayerScore);
+
+                //end game if all are matched
+                if(gameBoard.areAllCardsRevealed()){
+                    endGame();
+                    return;
+                }
+
                 //reset selection current player keep the turn because player found a match on the cards
                 firstSelectedCard = null;
                 secondSelectedCard = null;
@@ -127,6 +149,20 @@ public class GameRoom {
     private void broadcastMessage(String message){
         firstPlayer.sendMessage(message);
         secondPlayer.sendMessage(message);
+    }
+    public void endGame(){
+        broadcastMessage("GAME OVER");
+        broadcastMessage("FINAL SCORE: " + firstPlayer.getUsername() + " " +  firstPlayerScore + " Vs " + secondPlayer.getUsername() + " " + secondPlayerScore);
+
+        if(firstPlayerScore > secondPlayerScore){
+            broadcastMessage("WINNER is: " + firstPlayer.getUsername());
+        }
+        else if(secondPlayerScore > firstPlayerScore){
+            broadcastMessage("WINNER is: " + secondPlayer.getUsername());
+        }
+        else{
+            broadcastMessage("DRAW");
+        }
     }
 
 
