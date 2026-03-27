@@ -99,8 +99,33 @@ public class PlayerSession implements Runnable{
 
             while((incomingMessage = reader.readLine()) != null){
                 incomingMessage = incomingMessage.trim();
-                System.out.println(username + " says: " + incomingMessage);
-                writer.println("Server_ECHO: " + incomingMessage);
+
+                if(incomingMessage.startsWith("FLIP ")){
+                    if(gameRoom == null){
+                        sendMessage("ERROR you are not inside a game room yet");
+                        continue;
+                    }
+                    String[] messageParts = incomingMessage.split("\\s+");
+
+                    if(messageParts.length != 3){
+                        sendMessage("Error invalid flip format. use: flip row column");
+                        continue;
+                    }
+                    try{
+                        int row = Integer.parseInt(messageParts[1]);
+                        int column = Integer.parseInt(messageParts[2]);
+
+                        System.out.println(username + " attempted flip at (" + row + ", " + column + ")");
+                        gameRoom.handleFlipCommand(this, row, column);
+                    }
+                    catch(NumberFormatException numberFormatException){
+                        sendMessage("ERROR row and column must be numbers");
+                    }
+                    continue;
+                }
+                //keep a simple echo for non-game messages
+                System.out.println(username + " says: " +  incomingMessage);
+                sendMessage("SERVER_ECHO: " + incomingMessage);
             }
         }
         catch (IOException ioException){
