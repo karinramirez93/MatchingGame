@@ -20,7 +20,6 @@ public class PlayerSession implements Runnable{
     private boolean registered; // verify if the client has completed registration
     //stores the active game once a match starts
     private GameRoom gameRoom;
-
     private final MatchingGameServer matchingGameServer; //notify when the player finishes registration
 
     public PlayerSession(Socket clientSocket, MatchingGameServer matchingGameServer) {
@@ -55,7 +54,7 @@ public class PlayerSession implements Runnable{
     // @throws IOException if the client disconnects during registration
     public void requestUsername() throws IOException {
         while(!registered){
-            writer.println("REQUEST_USERNAME (format: USERNAME yourname)");
+            sendMessage("REQUEST_USERNAME (format: USERNAME yourname)");
 
             String usernameMessage = reader.readLine();
 
@@ -83,7 +82,7 @@ public class PlayerSession implements Runnable{
             this.username = proposedUsername;
             this.registered = true;
 
-            writer.println("USERNAME_ACCEPTED: " + username);
+            sendMessage("USERNAME_ACCEPTED: " + username);
             System.out.println("Register player: " + username);
 
             //add player to lobby after registered to wait for an opponent
@@ -91,15 +90,17 @@ public class PlayerSession implements Runnable{
         }
     }
 
+    @Override
     public void run(){
         try{
-            writer.println("Welcome to Matching Game Server");
+           sendMessage("Welcome to Matching Game Server");
             requestUsername();
             String incomingMessage;
 
             while((incomingMessage = reader.readLine()) != null){
                 incomingMessage = incomingMessage.trim();
 
+                //real game move while playing
                 if(incomingMessage.startsWith("FLIP ")){
                     if(gameRoom == null){
                         sendMessage("ERROR you are not inside a game room yet");
@@ -123,8 +124,35 @@ public class PlayerSession implements Runnable{
                     }
                     continue;
                 }
-                //keep a simple echo for non-game messages
-                System.out.println(username + " says: " +  incomingMessage);
+                //numeric options depending on current room state
+                if(gameRoom != null){
+                    RoomState currentRoomState = gameRoom.getRoomState();
+
+                    //numeric option for main menu
+                    if(currentRoomState == RoomState.MAIN_MENU){
+                        if(incomingMessage.equals("1") ||  incomingMessage.equals("2") || incomingMessage.equals("3")){
+                            System.out.println(username + "Selected main menu options: " + incomingMessage);
+                            gameRoom.handleMenuOption(this, incomingMessage);
+                            continue;
+                        }
+                        sendMessage("Error invalid menu option. use 1, 2 , 3");
+                        continue;
+
+                    }
+                    //numeric option for difficulty menu
+                    if(currentRoomState == RoomState.DIFFICULTY_SELECTION){
+                        if(incomingMessage.equals("1") ||  incomingMessage.equals("2") || incomingMessage.equals("3")){
+                            System.out.println(username + "Selected difficulty options: " + incomingMessage);
+                            gameRoom.handleDifficultyOption(this, incomingMessage);
+                            continue;
+                        }
+                        sendMessage("Error invalid difficulty option. use 1, 2 , 3");
+                        continue;
+
+                    }
+                }
+                // tempp fallback while still developing
+                System.out.println((username + "says: " + incomingMessage));
                 sendMessage("SERVER_ECHO: " + incomingMessage);
             }
         }
@@ -136,14 +164,25 @@ public class PlayerSession implements Runnable{
         }
 
     }
+    //closes the client connection
     private void closeConnection(){
         try{
             if(clientSocket != null && !clientSocket.isClosed()){
+                System.out.println("closing session for player: " +  username);
                 clientSocket.close();
             }
         }
         catch(IOException ioException){
             System.out.println("Error closing socket: " + ioException.getMessage());
+        }
+    }
+    public void disconedFromServer(){
+        try{
+            if(clientSocket != null && !clientSocket.isClosed()){
+                closeConnection();
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
     //send a message from the server to a client

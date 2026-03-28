@@ -45,7 +45,7 @@ public class MatchingGameServer {
 			System.out.println("Match found: " + firstPlayer.getUsername() + " VS " + secondPlayer.getUsername());
 
 			GameRoom gameRoom = new GameRoom(firstPlayer, secondPlayer);
-			gameRoom.startMatch();
+			gameRoom.showMainMenu();
 		}
 	}
 
