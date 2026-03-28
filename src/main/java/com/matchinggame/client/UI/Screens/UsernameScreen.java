@@ -1,7 +1,9 @@
 package com.matchinggame.client.UI.Screens;
 
 import com.matchinggame.client.Controller.ClientSession;
+import com.matchinggame.client.Controller.ServerMessageListener;
 import com.matchinggame.client.UI.SceneManager;
+import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -47,17 +49,48 @@ public class UsernameScreen {
             }
             //stores the username
             clientSession.setUsername(username);
-            //send the username to the server
-            clientSession.getClientConnection().sendMessage(username);
+            //send the username expected to the server (USERNAME yourname)
+            //user only has to type he/her name like "ALICE or Alice or alice"
+            //server will receive "USERNAME ALICE" as expected
+            clientSession.getClientConnection().sendMessage("USERNAME " +username);
+            statusLabel.setText("Submitting username...");
 
             //disable input control to avoid sending duplicate usernames
             usernameField.setDisable(true);
             continueButton.setDisable(true);
 
             statusLabel.setStyle("-fx-text-fill: green;");
-            statusLabel.setText("Joining lobby\n Waiting for an opponent");
+            statusLabel.setText("Joining lobby");
 
-            System.out.println("Username sent: " + username);
+            System.out.println("Username sent: USERNAME " + username);
+
+            //start a background listener only once
+            if(clientSession.getListeningThread() == null){
+                ServerMessageListener listener = new ServerMessageListener(clientSession.getClientConnection(),message -> Platform.runLater(() -> {
+                    System.out.println("Server message: " + message);
+
+                    //check if username is accepted
+                    if(message.contains("Username accepted")){
+                        //go to lobby only if username is accepted
+                        sceneManager.showScene(new LobbyScreen(sceneManager,clientSession).createLobbyScreen());
+                    }
+                    else if(message.contains("ERROR")){
+                        //show error to the screen
+                        statusLabel.setStyle("-fx-text-fill: red;");
+                        statusLabel.setText(message);
+
+                        //let the username box available again to enter a new username and click "continue" button
+                        usernameField.setDisable(false);
+                        continueButton.setDisable(false);
+                    }
+                }) );
+                Thread listenerThread = new Thread(listener);
+                listenerThread.setDaemon(true);
+                listenerThread.start();
+
+                clientSession.setListenerThread(listenerThread);
+            }
+
         });
         VBox root = new VBox(10, titleLabel, instructionsLabel, usernameField,  continueButton, statusLabel);
         root.setAlignment(Pos.CENTER);
@@ -66,4 +99,5 @@ public class UsernameScreen {
         return new Scene(root, 420, 300);
 
     }
+
 }

@@ -17,7 +17,7 @@ public class ClientApp extends Application {
         ClientSession clientSession = new ClientSession();
 
         primaryStage.setTitle("Matching Game Client");
-        sceneManager.showScene(new ConnectScreen(sceneManager, clientSession).creatConnectScene());
+        sceneManager.showScene(new ConnectScreen(sceneManager, clientSession).createConnectScene());
         //display the window
         primaryStage.show();
 

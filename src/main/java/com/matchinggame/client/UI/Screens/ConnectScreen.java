@@ -22,11 +22,11 @@ public class ConnectScreen {
     public ConnectScreen(SceneManager sceneManager, ClientSession clientSession) {
 
         this.sceneManager = sceneManager;
-        this.clientSession = new ClientSession();
+        this.clientSession = clientSession;
     }
 
     //create and returns the connection screen scene
-    public Scene creatConnectScene() {
+    public Scene createConnectScene() {
         //title
         Label titleLabel = new Label("Matching Game Client");
         titleLabel.setStyle("-fx-font-size: 22px; -fx-font-weight: bold;");
