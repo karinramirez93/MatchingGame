@@ -24,31 +24,6 @@ public class MatchingGameServer {
 		this.waitingPlayers = new ArrayList<>();
 	}
 
-	/**
-	 * adds a registered player to the waiting looby.
-	 * once two players are available, the server pairs them.
-	 */
-	public synchronized void addPlayerToLobby(PlayerSession playerSession){
-		waitingPlayers.add(playerSession);
-
-
-		System.out.println("Player added to lobby: " + playerSession.getUsername());
-
-		if(waitingPlayers.size() == 1){
-			playerSession.sendMessage("WAITING_FOR_PLAYER");
-			return;
-		}
-		if(waitingPlayers.size() >= 2){
-			PlayerSession firstPlayer = waitingPlayers.remove(0);
-			PlayerSession secondPlayer = waitingPlayers.remove(0);
-
-			System.out.println("Match found: " + firstPlayer.getUsername() + " VS " + secondPlayer.getUsername());
-
-			GameRoom gameRoom = new GameRoom(firstPlayer, secondPlayer);
-			gameRoom.showMainMenu();
-		}
-	}
-
 	//start the server and listens for incoming client connection	
 	public void startServer(){
 		try{
@@ -67,4 +42,50 @@ public class MatchingGameServer {
 			System.out.println("Server Error: " + ioException.getMessage());
 		}
 	}
+
+	/**
+	 * adds a registered player to the waiting looby.
+	 * once two players are available, the server pairs them.
+	 */
+	public synchronized void addPlayerToLobby(PlayerSession playerSession){
+		waitingPlayers.add(playerSession);
+
+
+		System.out.println("Player added to lobby: " + playerSession.getUsername());
+
+		if(waitingPlayers.size() == 1){
+			playerSession.sendMessage("Waiting for player to start");
+			return;
+		}
+		if(waitingPlayers.size() >= 2){
+			PlayerSession firstPlayer = waitingPlayers.remove(0);
+			PlayerSession secondPlayer = waitingPlayers.remove(0);
+
+			System.out.println("Match found: " + firstPlayer.getUsername() + " VS " + secondPlayer.getUsername());
+
+			GameRoom gameRoom = new GameRoom(firstPlayer, secondPlayer, this);
+			gameRoom.showMainMenu();
+		}
+	}
+	// remove player from waiting lobby if present
+	public synchronized void removePlayerFromLobby(PlayerSession playerSession){
+		if(waitingPlayers.remove(playerSession)){
+			System.out.println("Player removed from lobby: " + playerSession.getUsername());
+		}
+	}
+	public synchronized void returnPlayerToLobby(PlayerSession playerSession){
+		if(playerSession == null){
+			return;
+		}
+		if(waitingPlayers.contains(playerSession)){
+			return;
+		}
+		playerSession.setGameRoom(null);
+		waitingPlayers.add(playerSession);
+
+		System.out.println("Player returned to lobby: " + playerSession.getUsername());
+		playerSession.sendMessage("Returning to lobby");
+		playerSession.sendMessage("Waiting for player");
+	}
+
 }

@@ -21,6 +21,7 @@ public class PlayerSession implements Runnable{
     //stores the active game once a match starts
     private GameRoom gameRoom;
     private final MatchingGameServer matchingGameServer; //notify when the player finishes registration
+    private boolean disconected; // prevents disconnect cleanup from running more than once
 
     public PlayerSession(Socket clientSocket, MatchingGameServer matchingGameServer) {
         this.clientSocket = clientSocket;
@@ -43,6 +44,11 @@ public class PlayerSession implements Runnable{
     public void setGameRoom(GameRoom gameRoom) {
         this.gameRoom = gameRoom;
     }
+    // clears the current game room
+    public void clearGameRoom(){
+        this.gameRoom = null;
+    }
+
     //return the active game room for this player
     public GameRoom getGameRoom() {
         return gameRoom;
@@ -54,7 +60,7 @@ public class PlayerSession implements Runnable{
     // @throws IOException if the client disconnects during registration
     public void requestUsername() throws IOException {
         while(!registered){
-            sendMessage("REQUEST_USERNAME (format: USERNAME yourname)");
+            sendMessage("Request username (format: USERNAME yourname)");
 
             String usernameMessage = reader.readLine();
 
@@ -66,7 +72,7 @@ public class PlayerSession implements Runnable{
 
             //username format
             if(!usernameMessage.startsWith("USERNAME ")){
-                writer.println("ERROR Invalid username format. use: USERNAME yourName");
+                sendMessage("ERROR Invalid username format. use: USERNAME yourName");
                 continue;
             }
 
@@ -74,7 +80,7 @@ public class PlayerSession implements Runnable{
             String proposedUsername = usernameMessage.substring("USERNAME ".length()).trim();
 
             if (proposedUsername.isEmpty()){
-                writer.println("ERROR Invalid username format (cannot be empty). use: USERNAME yourName");
+                sendMessage("Error Invalid username format (cannot be empty). use: USERNAME yourName");
                 continue;
             }
 
@@ -82,7 +88,7 @@ public class PlayerSession implements Runnable{
             this.username = proposedUsername;
             this.registered = true;
 
-            sendMessage("USERNAME_ACCEPTED: " + username);
+            sendMessage("Username accepted: " + username);
             System.out.println("Register player: " + username);
 
             //add player to lobby after registered to wait for an opponent
@@ -101,15 +107,19 @@ public class PlayerSession implements Runnable{
                 incomingMessage = incomingMessage.trim();
 
                 //real game move while playing
-                if(incomingMessage.startsWith("FLIP ")){
+                // accept "flip || FLIP " from user input
+                String trimmedMessage = incomingMessage.trim();
+                //if lowercase "flip", we make it "FLIP"
+                String upperCaseMessage = trimmedMessage.toUpperCase();
+                if(upperCaseMessage.startsWith("FLIP ")){
                     if(gameRoom == null){
-                        sendMessage("ERROR you are not inside a game room yet");
+                        sendMessage("Error you are not inside a game room yet");
                         continue;
                     }
                     String[] messageParts = incomingMessage.split("\\s+");
 
                     if(messageParts.length != 3){
-                        sendMessage("Error invalid flip format. use: flip row column");
+                        sendMessage("Error invalid flip format. use: FLIP row column");
                         continue;
                     }
                     try{
@@ -120,7 +130,7 @@ public class PlayerSession implements Runnable{
                         gameRoom.handleFlipCommand(this, row, column);
                     }
                     catch(NumberFormatException numberFormatException){
-                        sendMessage("ERROR row and column must be numbers");
+                        sendMessage("Error row and column must be numbers");
                     }
                     continue;
                 }
@@ -130,12 +140,12 @@ public class PlayerSession implements Runnable{
 
                     //numeric option for main menu
                     if(currentRoomState == RoomState.MAIN_MENU){
-                        if(incomingMessage.equals("1") ||  incomingMessage.equals("2") || incomingMessage.equals("3")){
+                        if(incomingMessage.equals("1") ||  incomingMessage.equals("2")){
                             System.out.println(username + "Selected main menu options: " + incomingMessage);
                             gameRoom.handleMenuOption(this, incomingMessage);
                             continue;
                         }
-                        sendMessage("Error invalid menu option. use 1, 2 , 3");
+                        sendMessage("Error invalid menu option. use 1, or 2");
                         continue;
 
                     }
@@ -153,7 +163,7 @@ public class PlayerSession implements Runnable{
                 }
                 // tempp fallback while still developing
                 System.out.println((username + "says: " + incomingMessage));
-                sendMessage("SERVER_ECHO: " + incomingMessage);
+                sendMessage("Server echo: " + incomingMessage);
             }
         }
         catch (IOException ioException){
@@ -166,7 +176,21 @@ public class PlayerSession implements Runnable{
     }
     //closes the client connection
     private void closeConnection(){
+        if(disconected){
+            return;
+        }
+        disconected = true;
+
         try{
+            //remove from waiting lobby if the player was still there
+            matchingGameServer.removePlayerFromLobby(this);
+
+            //notify the room if the player was already part of one room
+            if(gameRoom != null){
+                gameRoom.handlePlayerDisconnect(this);
+                gameRoom = null;
+            }
+
             if(clientSocket != null && !clientSocket.isClosed()){
                 System.out.println("closing session for player: " +  username);
                 clientSocket.close();
@@ -176,14 +200,8 @@ public class PlayerSession implements Runnable{
             System.out.println("Error closing socket: " + ioException.getMessage());
         }
     }
-    public void disconedFromServer(){
-        try{
-            if(clientSocket != null && !clientSocket.isClosed()){
-                closeConnection();
-            }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+    public void disconnectFromServer(){
+        closeConnection();
     }
     //send a message from the server to a client
     public void sendMessage(String message){

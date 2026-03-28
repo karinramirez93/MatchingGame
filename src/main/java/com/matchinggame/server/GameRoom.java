@@ -22,20 +22,58 @@ public class GameRoom {
     private GameDifficulty firstPlayerDifficultyChoice;
     private GameDifficulty secondPlayerDifficultyChoice;
     private GameDifficulty currentDifficulty = GameDifficulty.EASY; // set up initial game difficulty
+    //indicate when teh room is still active
+    // once closed, the room should ignore further actions
+    private boolean roomClosed;
+    private final MatchingGameServer matchingGameServer;
 
     // constructor
-    public GameRoom(PlayerSession firstPlayer, PlayerSession secondPlayer) {
+    public GameRoom(PlayerSession firstPlayer, PlayerSession secondPlayer, MatchingGameServer matchingGameServer) {
         this.firstPlayer = firstPlayer;
         this.secondPlayer = secondPlayer;
+        this.matchingGameServer = matchingGameServer;
     }
 
     //return the current state of the room
     public RoomState getRoomState(){
         return roomState;
     }
+    public synchronized void handlePlayerDisconnect(PlayerSession disconnectedPlayer){
+        if(roomClosed){
+            return;
+        }
+        roomClosed = true;
+
+        PlayerSession remainingPlayer;
+
+        if(disconnectedPlayer == firstPlayer){
+            remainingPlayer = secondPlayer;
+        }
+        else{
+            remainingPlayer = firstPlayer;
+        }
+        if(remainingPlayer != null){
+            remainingPlayer.sendMessage("Opponent disconnected --> " + disconnectedPlayer.getUsername());
+            remainingPlayer.sendMessage("Room Closed");
+            //remainingPlayer.sendMessage(null);
+//            try{
+//                Thread.sleep(2000);
+//            }
+//            catch (InterruptedException e){
+//                Thread.currentThread().interrupt();
+//            }
+            System.out.println("Room closed because player disconnected: " + disconnectedPlayer.getUsername());
+
+        }
+        matchingGameServer.returnPlayerToLobby(remainingPlayer);
+
+    }
 
     //shows the main manu to both players
     public synchronized void showMainMenu() {
+        if(roomClosed){
+            return;
+        }
         roomState = RoomState.MAIN_MENU;
 
         firstPlayerMenuChoice = null;
@@ -56,6 +94,9 @@ public class GameRoom {
     }
     // starts the match after both players agreed on difficulty
     public void startMatch(){
+        if(roomClosed){
+            return;
+        }
         //assign this room to both players
         firstPlayer.setGameRoom(this);
         secondPlayer.setGameRoom(this);
@@ -101,19 +142,23 @@ public class GameRoom {
     }
     private synchronized void showDifficultyMenu(){
         roomState = RoomState.DIFFICULTY_SELECTION;
-        firstPlayerMenuChoice = null;
-        secondPlayerMenuChoice = null;
+        firstPlayerDifficultyChoice = null;
+        secondPlayerDifficultyChoice = null;
 
         broadcastMessage(GameMenu.getDifficultyMenuText());
         System.out.println("Difficulty menu shown for " + firstPlayer.getUsername() + " Vs " + secondPlayer.getUsername());
     }
     //numeric main menu options
     // 1 - start
-    // 2 - rematch
-    // 3 - exit
+    // 2 - exit
     public synchronized void handleMenuOption(PlayerSession playerSession, String optionText){
+        if(roomClosed){
+            playerSession.sendMessage("Error, room is closed");
+            return;
+        }
+
         if(roomState != RoomState.MAIN_MENU){
-            playerSession.sendMessage("ERROR Invalid menu option");
+            playerSession.sendMessage("ERROR, Invalid menu option");
             return;
         }
         String normalizedOption = optionText.trim();
@@ -127,25 +172,17 @@ public class GameRoom {
                     showDifficultyMenu();
                 }
                 break;
+
             case "2":
-                storeMenuChoice(playerSession, "REMATCH");
-                broadcastMessage("MENU_SELECTION " + playerSession.getUsername() + " REMATCH");
-
-                if ("REMATCH".equals(firstPlayerMenuChoice) && "REMATCH".equals(secondPlayerMenuChoice)) {
-                    showDifficultyMenu();
-                }
-                break;
-
-            case "3":
                 storeMenuChoice(playerSession, "EXIT");
-                broadcastMessage("MENU_SELECTION " + playerSession.getUsername() + " EXIT");
-                broadcastMessage("SESSION_CLOSED " +  playerSession.getUsername());
+                broadcastMessage("Menu selection " + playerSession.getUsername() + " EXIT");
+                broadcastMessage("Session closed " +  playerSession.getUsername());
                 System.out.println("Session closed by: " + playerSession.getUsername());
-                playerSession.disconedFromServer();
+                playerSession.disconnectFromServer();
                 break;
 
             default:
-                playerSession.sendMessage("ERROR Invalid menu option. Use 1, 2, or 3");
+                playerSession.sendMessage("Error Invalid menu option. Use 1, or 2");
 
         }
     }
@@ -163,8 +200,13 @@ public class GameRoom {
     // 2 - medium
     // 3 - hard
     public synchronized void handleDifficultyOption(PlayerSession playerSession, String difficultyText){
+        if(roomClosed){
+            playerSession.sendMessage("Error, room is closed");
+            return;
+        }
+
         if(roomState != RoomState.DIFFICULTY_SELECTION){
-            playerSession.sendMessage("ERROR Invalid difficulty option");
+            playerSession.sendMessage("Error Invalid difficulty option");
             return;
         }
         GameDifficulty selectedDifficulty;
@@ -192,7 +234,7 @@ public class GameRoom {
         else if(playerSession == secondPlayer){
             secondPlayerDifficultyChoice = selectedDifficulty;
         }
-        broadcastMessage("DIFFICULTY_SELECTION " + playerSession.getUsername() + " " + selectedDifficulty);
+        broadcastMessage("Difficulty selection " + playerSession.getUsername() + " " + selectedDifficulty);
 
         if(firstPlayerDifficultyChoice != null && secondPlayerDifficultyChoice != null){
             if(firstPlayerDifficultyChoice == secondPlayerDifficultyChoice){
@@ -201,7 +243,7 @@ public class GameRoom {
 
             }
             else{
-                broadcastMessage("DIFFICULTY_MISMATCH");
+                broadcastMessage("Difficulty missmatch");
                 showDifficultyMenu();
             }
         }
@@ -209,8 +251,13 @@ public class GameRoom {
 
     //handles one FLIP command while the room is in PLAYING state
     public synchronized void handleFlipCommand(PlayerSession playerSession, int row, int column){
+        if(roomClosed){
+            playerSession.sendMessage("Error, room is closed");
+            return;
+        }
         if(roomState != RoomState.PLAYING){
             playerSession.sendMessage("Error the match is not currently active");
+            return;
         }
         if(playerSession != currentTurnPlayer){
             playerSession.sendMessage("Not Your turn yet");
@@ -232,9 +279,9 @@ public class GameRoom {
         //reveal card
         gameBoard.revealCard(row, column);
 
-        broadcastMessage("CARD_FLIPPED " + playerSession.getUsername() + " " + row + " " + column + " " + selectedCard.getSymbol());
+        //broadcastMessage("Card flipped " + playerSession.getUsername() + " " + row + " " + column + " " + selectedCard.getSymbol());
 
-        broadcastMessage("BOARD " + gameBoard.getBoardDisplay());
+        broadcastMessage("Board " + gameBoard.getBoardDisplay());
 
         //fist Card
         if(firstSelectedCard == null){
@@ -245,7 +292,7 @@ public class GameRoom {
         }
         //prevent selecting the same card position twice
         if(row == firstRow && column == firstColumn){
-            playerSession.sendMessage("ERROR you cannot select the same card twice");
+            playerSession.sendMessage("Error you cannot select the same card twice");
             return;
         }
         //second Card
@@ -256,7 +303,7 @@ public class GameRoom {
 
             //check cards if match each other
             if (firstSelectedCard.getSymbol().equals(secondSelectedCard.getSymbol())) {
-                broadcastMessage("MATCH_FOUND " + playerSession.getUsername());
+                broadcastMessage("Match found " + playerSession.getUsername());
 
                 //marks both cards as permanently matched
                 firstSelectedCard.markAsMatched();
@@ -269,7 +316,7 @@ public class GameRoom {
                     secondPlayerScore++;
                 }
                 //show score bar
-                broadcastMessage("SCORE: " + firstPlayer.getUsername() + " " + firstPlayerScore + " Vs " + secondPlayer.getUsername() + " " + secondPlayerScore);
+                broadcastMessage("Score: " + firstPlayer.getUsername() + " " + firstPlayerScore + " Vs " + secondPlayer.getUsername() + " " + secondPlayerScore);
 
                 //reset selection current player keep the turn because player found a match on the cards
                 firstSelectedCard = null;
@@ -308,17 +355,17 @@ public class GameRoom {
     public void endGame(){
 
 
-        broadcastMessage("GAME OVER");
-        broadcastMessage("FINAL SCORE: " + firstPlayer.getUsername() + " " +  firstPlayerScore + " Vs " + secondPlayer.getUsername() + " " + secondPlayerScore);
+        broadcastMessage("Game over");
+        broadcastMessage("Final score: " + firstPlayer.getUsername() + " " +  firstPlayerScore + " Vs " + secondPlayer.getUsername() + " " + secondPlayerScore);
 
         if(firstPlayerScore > secondPlayerScore){
-            broadcastMessage("WINNER is: " + firstPlayer.getUsername());
+            broadcastMessage("Winner is: " + firstPlayer.getUsername());
         }
         else if(secondPlayerScore > firstPlayerScore){
-            broadcastMessage("WINNER is: " + secondPlayer.getUsername());
+            broadcastMessage("Winner is: " + secondPlayer.getUsername());
         }
         else{
-            broadcastMessage("DRAW");
+            broadcastMessage("Draw");
         }
         System.out.println("Game finished: " + firstPlayer.getUsername() + " " +  firstPlayerScore + " Vs " + secondPlayer.getUsername() + " " + secondPlayerScore);
 

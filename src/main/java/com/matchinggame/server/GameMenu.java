@@ -6,8 +6,7 @@ public class GameMenu {
                    ------------ Main Menu -----------------
              
                                1. Start
-                               2. Rematch
-                               3. Exit
+                               2. Exit
                 """;
         return menuPage;
     }
