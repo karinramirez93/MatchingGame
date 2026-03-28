@@ -11,6 +11,12 @@ version = '1.0-SNAPSHOT'
 repositories {
     mavenCentral()
 }
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(23)
+    }
+}
+
 
 // JavaFX Configuration
 javafx {
@@ -25,9 +31,12 @@ dependencies {
 
 application {
     // This will be the main class that launches the GUI
-    mainClass = 'com.matchinggame.client.MemoryApp'
+    mainClass = 'com.matchinggame.client.ClientApp'
 }
 
 tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
+}
+test{
+    useJUnitPlatform()
 }
