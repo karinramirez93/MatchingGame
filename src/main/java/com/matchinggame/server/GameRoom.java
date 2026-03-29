@@ -53,8 +53,8 @@ public class GameRoom {
             remainingPlayer = firstPlayer;
         }
         if(remainingPlayer != null){
-            remainingPlayer.sendMessage("Opponent disconnected --> " + disconnectedPlayer.getUsername());
-            remainingPlayer.sendMessage("Room Closed");
+            remainingPlayer.sendMessage("OPPONENT_DISCONNECTED --> " + disconnectedPlayer.getUsername());
+            remainingPlayer.sendMessage("ROOM_CLOSED");
             //remainingPlayer.sendMessage(null);
 //            try{
 //                Thread.sleep(2000);
@@ -85,8 +85,8 @@ public class GameRoom {
         firstPlayer.setGameRoom(this);
         secondPlayer.setGameRoom(this);
 
-        firstPlayer.sendMessage("Room ready, your opponent is: " + secondPlayer.getUsername());
-        secondPlayer.sendMessage("Room ready, your opponent is: " + firstPlayer.getUsername());
+        firstPlayer.sendMessage("STATE:ROOM_READY: " + secondPlayer.getUsername());
+        secondPlayer.sendMessage("STATE:ROOM_READY: " + firstPlayer.getUsername());
 
         broadcastMessage(GameMenu.getMainMenuText());
 
@@ -131,12 +131,12 @@ public class GameRoom {
         secondPlayer.sendMessage("YOUR_ROLE PLAYER_TWO");
 
         //inform both players that a game room has started
-        firstPlayer.sendMessage("Game_room_started");
-        secondPlayer.sendMessage("Game_room_started");
+        firstPlayer.sendMessage("GAME_ROOM_STARTED");
+        secondPlayer.sendMessage("GAME_ROOM_STARTED");
 
-        broadcastMessage("Difficulty confirmed: " + currentDifficulty.name());
-        broadcastMessage("Board " + gameBoard.getBoardDisplay());
-        broadcastMessage("Turn " + currentTurnPlayer.getUsername());
+        broadcastMessage("DIFFICULTY_CONFIRMED: " + currentDifficulty.name());
+        broadcastMessage("BOARD " + gameBoard.getBoardDisplay());
+        broadcastMessage("TURN " + currentTurnPlayer.getUsername());
 
         System.out.println("Game Room Started for " + firstPlayer.getUsername() + " Vs " + secondPlayer.getUsername());
     }
@@ -153,7 +153,7 @@ public class GameRoom {
     // 2 - exit
     public synchronized void handleMenuOption(PlayerSession playerSession, String optionText){
         if(roomClosed){
-            playerSession.sendMessage("Error, room is closed");
+            playerSession.sendMessage("Error, ROOM_IS_CLOSED");
             return;
         }
 
@@ -166,7 +166,7 @@ public class GameRoom {
         switch (normalizedOption){
             case "1":
                 storeMenuChoice(playerSession, "START");
-                broadcastMessage("Menu selection " + playerSession.getUsername() + " START");
+                broadcastMessage("MENU_SELECTION " + playerSession.getUsername() + " START");
 
                 if("START".equals(firstPlayerMenuChoice) && "START".equals(secondPlayerMenuChoice)){
                     showDifficultyMenu();
@@ -175,8 +175,8 @@ public class GameRoom {
 
             case "2":
                 storeMenuChoice(playerSession, "EXIT");
-                broadcastMessage("Menu selection " + playerSession.getUsername() + " EXIT");
-                broadcastMessage("Session closed " +  playerSession.getUsername());
+                broadcastMessage("MENU_SELECTION " + playerSession.getUsername() + " EXIT");
+                broadcastMessage("SESSION_CLOSED " +  playerSession.getUsername());
                 System.out.println("Session closed by: " + playerSession.getUsername());
                 playerSession.disconnectFromServer();
                 break;
@@ -201,7 +201,7 @@ public class GameRoom {
     // 3 - hard
     public synchronized void handleDifficultyOption(PlayerSession playerSession, String difficultyText){
         if(roomClosed){
-            playerSession.sendMessage("Error, room is closed");
+            playerSession.sendMessage("Error, ROOM_IS_CLOSED");
             return;
         }
 
@@ -234,7 +234,7 @@ public class GameRoom {
         else if(playerSession == secondPlayer){
             secondPlayerDifficultyChoice = selectedDifficulty;
         }
-        broadcastMessage("Difficulty selection " + playerSession.getUsername() + " " + selectedDifficulty);
+        broadcastMessage("DIFFICULTY_SELECTION: " + playerSession.getUsername() + " " + selectedDifficulty);
 
         if(firstPlayerDifficultyChoice != null && secondPlayerDifficultyChoice != null){
             if(firstPlayerDifficultyChoice == secondPlayerDifficultyChoice){
@@ -243,7 +243,7 @@ public class GameRoom {
 
             }
             else{
-                broadcastMessage("Difficulty missmatch");
+                broadcastMessage("DIFFICULTY_MISMATCH");
                 showDifficultyMenu();
             }
         }
@@ -252,7 +252,7 @@ public class GameRoom {
     //handles one FLIP command while the room is in PLAYING state
     public synchronized void handleFlipCommand(PlayerSession playerSession, int row, int column){
         if(roomClosed){
-            playerSession.sendMessage("Error, room is closed");
+            playerSession.sendMessage("Error, ROOM_IS_CLOSED");
             return;
         }
         if(roomState != RoomState.PLAYING){
@@ -260,7 +260,7 @@ public class GameRoom {
             return;
         }
         if(playerSession != currentTurnPlayer){
-            playerSession.sendMessage("Not Your turn yet");
+            playerSession.sendMessage("NOT_YOUR_TURN");
             return;
         }
 
@@ -281,7 +281,7 @@ public class GameRoom {
 
         //broadcastMessage("Card flipped " + playerSession.getUsername() + " " + row + " " + column + " " + selectedCard.getSymbol());
 
-        broadcastMessage("Board " + gameBoard.getBoardDisplay());
+        broadcastMessage("BOARD " + gameBoard.getBoardDisplay());
 
         //fist Card
         if(firstSelectedCard == null){
@@ -303,7 +303,7 @@ public class GameRoom {
 
             //check cards if match each other
             if (firstSelectedCard.getSymbol().equals(secondSelectedCard.getSymbol())) {
-                broadcastMessage("Match found " + playerSession.getUsername());
+                broadcastMessage("MATCH_FOUND " + playerSession.getUsername());
 
                 //marks both cards as permanently matched
                 firstSelectedCard.markAsMatched();
@@ -316,7 +316,7 @@ public class GameRoom {
                     secondPlayerScore++;
                 }
                 //show score bar
-                broadcastMessage("Score: " + firstPlayer.getUsername() + " " + firstPlayerScore + " Vs " + secondPlayer.getUsername() + " " + secondPlayerScore);
+                broadcastMessage("SCORE: " + firstPlayer.getUsername() + " " + firstPlayerScore + " Vs " + secondPlayer.getUsername() + " " + secondPlayerScore);
 
                 //reset selection current player keep the turn because player found a match on the cards
                 firstSelectedCard = null;
@@ -328,10 +328,10 @@ public class GameRoom {
                     return;
 
                 }
-                broadcastMessage("Turn: " + currentTurnPlayer.getUsername());
+                broadcastMessage("TURN: " + currentTurnPlayer.getUsername());
                 return;
             }
-                broadcastMessage("No match");
+                broadcastMessage("NO_MATCH");
                 try{
                     Thread.sleep(1200);
                 }
@@ -341,13 +341,13 @@ public class GameRoom {
                 firstSelectedCard.hide();
                 secondSelectedCard.hide();
 
-                broadcastMessage("Board " + gameBoard.getBoardDisplay());
+                broadcastMessage("BOARD " + gameBoard.getBoardDisplay());
 
                 firstSelectedCard = null;
                 secondSelectedCard = null;
 
                 switchTurn();
-                broadcastMessage("Turn: " + currentTurnPlayer.getUsername());
+                broadcastMessage("TURN: " + currentTurnPlayer.getUsername());
 
         }
     }
@@ -355,19 +355,19 @@ public class GameRoom {
     public void endGame(){
 
 
-        broadcastMessage("Game over");
-        broadcastMessage("Final score: " + firstPlayer.getUsername() + " " +  firstPlayerScore + " Vs " + secondPlayer.getUsername() + " " + secondPlayerScore);
+        broadcastMessage("GAME_OVER");
+        broadcastMessage("FINAL_SCORE: " + firstPlayer.getUsername() + " " +  firstPlayerScore + " Vs " + secondPlayer.getUsername() + " " + secondPlayerScore);
 
         if(firstPlayerScore > secondPlayerScore){
-            broadcastMessage("Winner is: " + firstPlayer.getUsername());
+            broadcastMessage("WINNER_IS: " + firstPlayer.getUsername());
         }
         else if(secondPlayerScore > firstPlayerScore){
-            broadcastMessage("Winner is: " + secondPlayer.getUsername());
+            broadcastMessage("WINNER_IS: " + secondPlayer.getUsername());
         }
         else{
-            broadcastMessage("Draw");
+            broadcastMessage("DRAW");
         }
-        System.out.println("Game finished: " + firstPlayer.getUsername() + " " +  firstPlayerScore + " Vs " + secondPlayer.getUsername() + " " + secondPlayerScore);
+        System.out.println("GAME_FINISHED: " + firstPlayer.getUsername() + " " +  firstPlayerScore + " Vs " + secondPlayer.getUsername() + " " + secondPlayerScore);
 
         //display menu with options
         showMainMenu();

@@ -54,7 +54,8 @@ public class MatchingGameServer {
 		System.out.println("Player added to lobby: " + playerSession.getUsername());
 
 		if(waitingPlayers.size() == 1){
-			playerSession.sendMessage("Waiting for player to start");
+			playerSession.sendMessage("STATE:WAITING");
+			//System.out.println("Waiting for player to start");
 			return;
 		}
 		if(waitingPlayers.size() >= 2){
@@ -84,8 +85,8 @@ public class MatchingGameServer {
 		waitingPlayers.add(playerSession);
 
 		System.out.println("Player returned to lobby: " + playerSession.getUsername());
-		playerSession.sendMessage("Returning to lobby");
-		playerSession.sendMessage("Waiting for player");
+		playerSession.sendMessage("RETURNING_TO_LOBBY");
+		playerSession.sendMessage("WAITING_FOR_PLAYER");
 	}
 
 }

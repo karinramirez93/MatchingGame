@@ -8,12 +8,12 @@ import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.layout.VBox;
 public class LobbyScreen {
-    private final SceneManager sceneManagement;
+    private final SceneManager sceneManager;
     private ClientSession clientSession;
 
     //constructor
-    public LobbyScreen(SceneManager sceneManagement,  ClientSession clientSession) {
-        this.sceneManagement = sceneManagement;
+    public LobbyScreen(SceneManager sceneManager,  ClientSession clientSession) {
+        this.sceneManager = sceneManager;
         this.clientSession = clientSession;
     }
 
@@ -23,7 +23,12 @@ public class LobbyScreen {
         titleLabel.setStyle("-fx-font-size: 26px; -fx-font-weight: bold");
 
         Label usernameLabel = new Label("Player: " + clientSession.getUsername());
-        Label waitingLabel = new Label("Waiting for another player...");
+
+        String lobbyMessage = clientSession.getLastStatusMessage() != null
+                ? clientSession.getLastStatusMessage()
+                : "Opponent is disconnected \n \nWaiting for another player...";
+
+        Label waitingLabel = new Label(lobbyMessage);
         waitingLabel.setStyle("-fx-text-fill: green;");
 
         VBox root = new VBox(12, titleLabel, usernameLabel, waitingLabel);

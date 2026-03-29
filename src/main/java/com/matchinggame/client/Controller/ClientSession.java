@@ -13,6 +13,8 @@ public class ClientSession {
     private ClientConnection clientConnection;
     private String username;
     private Thread listeningThread;
+    private String opponentUsername;
+    private String lastStatusMessage;
 
     //returns the active client connection
     public ClientConnection getClientConnection() {
@@ -22,6 +24,15 @@ public class ClientSession {
     public void setClientConnection(ClientConnection ClientConnection) {
         this.clientConnection = ClientConnection;
     }
+
+    public void setOpponentUsername(String opponentUsername) {
+        this.opponentUsername = opponentUsername;
+    }
+
+    public String getOpponentUsername() {
+        return opponentUsername;
+    }
+
     // returns the current username
     public String getUsername() {
         return username;
@@ -35,8 +46,16 @@ public class ClientSession {
     public Thread getListeningThread() {
         return listeningThread;
     }
-    //stores the backoground listener thread
+    //stores the background listener thread
     public void setListenerThread(Thread listenerThread){
         this.listeningThread = listenerThread;
     }
+
+    public String getLastStatusMessage() {
+        return lastStatusMessage;
+    }
+    public void setLastStatusMessage(String lastStatusMessage) {
+        this.lastStatusMessage = lastStatusMessage;
+    }
 }
+

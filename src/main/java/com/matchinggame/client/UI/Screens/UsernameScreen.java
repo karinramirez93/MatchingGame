@@ -49,47 +49,34 @@ public class UsernameScreen {
             }
             //stores the username
             clientSession.setUsername(username);
-            //send the username expected to the server (USERNAME yourname)
-            //user only has to type he/her name like "ALICE or Alice or alice"
-            //server will receive "USERNAME ALICE" as expected
-            clientSession.getClientConnection().sendMessage("USERNAME " +username);
-            statusLabel.setText("Submitting username...");
 
             //disable input control to avoid sending duplicate usernames
             usernameField.setDisable(true);
             continueButton.setDisable(true);
 
             statusLabel.setStyle("-fx-text-fill: green;");
-            statusLabel.setText("Joining lobby");
+            statusLabel.setText("Submitting username...");
 
-            System.out.println("Username sent: USERNAME " + username);
+            //start a background listener only once for the whole client session
+            if (clientSession.getListeningThread() == null) {
+                ServerMessageListener listener = new ServerMessageListener(
+                        clientSession.getClientConnection(),
+                        message -> Platform.runLater(() -> handleServerMessage(
+                                message,
+                                statusLabel,
+                                usernameField,
+                                continueButton
+                        ))
+                );
 
-            //start a background listener only once
-            if(clientSession.getListeningThread() == null){
-                ServerMessageListener listener = new ServerMessageListener(clientSession.getClientConnection(),message -> Platform.runLater(() -> {
-                    System.out.println("Server message: " + message);
-
-                    //check if username is accepted
-                    if(message.contains("Username accepted")){
-                        //go to lobby only if username is accepted
-                        sceneManager.showScene(new LobbyScreen(sceneManager,clientSession).createLobbyScreen());
-                    }
-                    else if(message.contains("ERROR")){
-                        //show error to the screen
-                        statusLabel.setStyle("-fx-text-fill: red;");
-                        statusLabel.setText(message);
-
-                        //let the username box available again to enter a new username and click "continue" button
-                        usernameField.setDisable(false);
-                        continueButton.setDisable(false);
-                    }
-                }) );
                 Thread listenerThread = new Thread(listener);
                 listenerThread.setDaemon(true);
                 listenerThread.start();
 
                 clientSession.setListenerThread(listenerThread);
             }
+            //send the username
+            clientSession.getClientConnection().sendMessage("USERNAME " +username);
 
         });
         VBox root = new VBox(10, titleLabel, instructionsLabel, usernameField,  continueButton, statusLabel);
@@ -97,6 +84,97 @@ public class UsernameScreen {
         root.setPadding(new Insets(25));
 
         return new Scene(root, 420, 300);
+
+    }
+    private void handleServerMessage(String message, Label statusLabel, TextField usernameField, Button continueButton) {
+        boolean handled  = false;
+        if (message.equals("STATE:WAITING")) {
+            handled = true;
+            clientSession.setLastStatusMessage("Waiting for another player to connect to the server");
+            sceneManager.showScene(new LobbyScreen(sceneManager, clientSession).createLobbyScreen());
+        }
+
+        else if (message.startsWith("STATE:ROOM_READY")) {
+            handled = true;
+
+            String opponentName = message.substring("STATE:ROOM_READY:".length()).trim();
+            clientSession.setOpponentUsername(opponentName);
+            clientSession.setLastStatusMessage(null);
+            sceneManager.showScene(new MenuScreen(sceneManager, clientSession).createMenuScreen());
+        }
+        else if (message.contains("MENU_SELECTION ")) {
+            handled = true;
+
+            // Example: "Menu selection ALICE START"
+            String[] parts = message.split(" ");
+            if (parts.length >= 3) {
+                String playerName = parts[1];
+                String selection = parts[2];
+
+                if (!playerName.equalsIgnoreCase(clientSession.getUsername())) {
+                    // Here you can update a status label in the menu screen
+                    clientSession.setLastStatusMessage(
+                            //message that the opponent received
+                            playerName + " selected " + selection + ". Choose the same option to continue."
+                    );
+                    sceneManager.showScene(new MenuScreen(sceneManager, clientSession).createMenuScreen());
+                }
+            }
+        }
+
+        else if(message.contains("Choose Difficulty")) {
+            handled = true;
+            clientSession.setLastStatusMessage(null);
+            sceneManager.showScene(new DifficultyScreen(sceneManager, clientSession).createDifficultyScreen());
+        }
+        else if (message.startsWith("DIFFICULTY_SELECTION:")) {
+            handled = true;
+
+            String payload = message.substring("DIFFICULTY_SELECTION:".length()).trim();
+            String[] parts = payload.split(" ");
+
+            if (parts.length >= 2) {
+                String playerName = parts[0];
+                String selection = parts[1];
+
+                if (!playerName.equalsIgnoreCase(clientSession.getUsername())) {
+                    clientSession.setLastStatusMessage(
+                            playerName + " selected " + selection + ". Choose the same difficulty to continue."
+                    );
+
+                    sceneManager.showScene(
+                            new DifficultyScreen(sceneManager, clientSession).createDifficultyScreen()
+                    );
+                }
+            }
+        }
+
+        //in case one of the two player is disconnected
+        //remaining player online is sent back to the lobby
+        else if (message.contains("RETURNING_TO_LOBBY")) {
+            handled = true;
+            clientSession.setOpponentUsername(null);
+            clientSession.setLastStatusMessage("Opponenet disconnected. waiting for another player");
+            sceneManager.showScene(new LobbyScreen(sceneManager, clientSession).createLobbyScreen());
+        }
+        //waiting for another player to connect to the server
+        else if(message.equals("WAITING_FOR_PLAYER")){
+            handled = true;
+            clientSession.setLastStatusMessage("Waiting for the player to connect...");
+            sceneManager.showScene(new LobbyScreen(sceneManager, clientSession).createLobbyScreen());
+        }
+        else if (message.contains("ERROR")){
+            handled = true;
+            statusLabel.setStyle("-fx-text-fill: red;");
+            statusLabel.setText(message);
+
+            //allow the user to try again if the backend rejects the username introduced
+            usernameField.setDisable(false);
+            continueButton.setDisable(false);
+        }
+        if(!handled) {
+            System.out.println("Unhandled server message: " + message);
+        }
 
     }
 
