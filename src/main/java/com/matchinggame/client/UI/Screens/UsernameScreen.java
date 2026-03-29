@@ -2,6 +2,7 @@ package com.matchinggame.client.UI.Screens;
 
 import com.matchinggame.client.Controller.ClientSession;
 import com.matchinggame.client.Controller.ServerMessageListener;
+import com.matchinggame.client.Controller.ClientMessageHandler;
 import com.matchinggame.client.UI.SceneManager;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
@@ -58,16 +59,22 @@ public class UsernameScreen {
             statusLabel.setText("Submitting username...");
 
             //start a background listener only once for the whole client session
-            if (clientSession.getListeningThread() == null) {
-                ServerMessageListener listener = new ServerMessageListener(
-                        clientSession.getClientConnection(),
-                        message -> Platform.runLater(() -> handleServerMessage(
-                                message,
-                                statusLabel,
-                                usernameField,
-                                continueButton
-                        ))
-                );
+            if(clientSession.getListeningThread() == null){
+
+
+            ClientMessageHandler messageHandler = new ClientMessageHandler(sceneManager, clientSession);
+
+            ServerMessageListener listener = new ServerMessageListener(
+                    clientSession.getClientConnection(),
+                    message -> Platform.runLater(() ->
+                            messageHandler.handleServerMessage(
+                                    message,
+                                    statusLabel,
+                                    usernameField,
+                                    continueButton
+                            )
+                    )
+            );
 
                 Thread listenerThread = new Thread(listener);
                 listenerThread.setDaemon(true);
@@ -86,96 +93,7 @@ public class UsernameScreen {
         return new Scene(root, 420, 300);
 
     }
-    private void handleServerMessage(String message, Label statusLabel, TextField usernameField, Button continueButton) {
-        boolean handled  = false;
-        if (message.equals("STATE:WAITING")) {
-            handled = true;
-            clientSession.setLastStatusMessage("Waiting for another player to connect to the server");
-            sceneManager.showScene(new LobbyScreen(sceneManager, clientSession).createLobbyScreen());
-        }
 
-        else if (message.startsWith("STATE:ROOM_READY")) {
-            handled = true;
 
-            String opponentName = message.substring("STATE:ROOM_READY:".length()).trim();
-            clientSession.setOpponentUsername(opponentName);
-            clientSession.setLastStatusMessage(null);
-            sceneManager.showScene(new MenuScreen(sceneManager, clientSession).createMenuScreen());
-        }
-        else if (message.contains("MENU_SELECTION ")) {
-            handled = true;
-
-            // Example: "Menu selection ALICE START"
-            String[] parts = message.split(" ");
-            if (parts.length >= 3) {
-                String playerName = parts[1];
-                String selection = parts[2];
-
-                if (!playerName.equalsIgnoreCase(clientSession.getUsername())) {
-                    // Here you can update a status label in the menu screen
-                    clientSession.setLastStatusMessage(
-                            //message that the opponent received
-                            playerName + " selected " + selection + ". Choose the same option to continue."
-                    );
-                    sceneManager.showScene(new MenuScreen(sceneManager, clientSession).createMenuScreen());
-                }
-            }
-        }
-
-        else if(message.contains("Choose Difficulty")) {
-            handled = true;
-            clientSession.setLastStatusMessage(null);
-            sceneManager.showScene(new DifficultyScreen(sceneManager, clientSession).createDifficultyScreen());
-        }
-        else if (message.startsWith("DIFFICULTY_SELECTION:")) {
-            handled = true;
-
-            String payload = message.substring("DIFFICULTY_SELECTION:".length()).trim();
-            String[] parts = payload.split(" ");
-
-            if (parts.length >= 2) {
-                String playerName = parts[0];
-                String selection = parts[1];
-
-                if (!playerName.equalsIgnoreCase(clientSession.getUsername())) {
-                    clientSession.setLastStatusMessage(
-                            playerName + " selected " + selection + ". Choose the same difficulty to continue."
-                    );
-
-                    sceneManager.showScene(
-                            new DifficultyScreen(sceneManager, clientSession).createDifficultyScreen()
-                    );
-                }
-            }
-        }
-
-        //in case one of the two player is disconnected
-        //remaining player online is sent back to the lobby
-        else if (message.contains("RETURNING_TO_LOBBY")) {
-            handled = true;
-            clientSession.setOpponentUsername(null);
-            clientSession.setLastStatusMessage("Opponenet disconnected. waiting for another player");
-            sceneManager.showScene(new LobbyScreen(sceneManager, clientSession).createLobbyScreen());
-        }
-        //waiting for another player to connect to the server
-        else if(message.equals("WAITING_FOR_PLAYER")){
-            handled = true;
-            clientSession.setLastStatusMessage("Waiting for the player to connect...");
-            sceneManager.showScene(new LobbyScreen(sceneManager, clientSession).createLobbyScreen());
-        }
-        else if (message.contains("ERROR")){
-            handled = true;
-            statusLabel.setStyle("-fx-text-fill: red;");
-            statusLabel.setText(message);
-
-            //allow the user to try again if the backend rejects the username introduced
-            usernameField.setDisable(false);
-            continueButton.setDisable(false);
-        }
-        if(!handled) {
-            System.out.println("Unhandled server message: " + message);
-        }
-
-    }
 
 }

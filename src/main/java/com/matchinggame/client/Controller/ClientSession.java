@@ -15,6 +15,10 @@ public class ClientSession {
     private Thread listeningThread;
     private String opponentUsername;
     private String lastStatusMessage;
+    private String playerRole;
+    private String confirmedDifficulty;
+    private String boardDisplay;
+    private String currentTurn;
 
     //returns the active client connection
     public ClientConnection getClientConnection() {
@@ -56,6 +60,30 @@ public class ClientSession {
     }
     public void setLastStatusMessage(String lastStatusMessage) {
         this.lastStatusMessage = lastStatusMessage;
+    }
+    public String getPlayerRole() {
+        return playerRole;
+    }
+    public void setPlayerRole(String playerRole) {
+        this.playerRole = playerRole;
+    }
+    public String getConfirmedDifficulty() {
+        return confirmedDifficulty;
+    }
+    public void setConfirmedDifficulty(String confirmedDifficulty) {
+        this.confirmedDifficulty = confirmedDifficulty;
+    }
+    public String getBoardDisplay() {
+        return boardDisplay;
+    }
+    public void setBoardDisplay(String boardDisplay) {
+        this.boardDisplay = boardDisplay;
+    }
+    public String getCurrentTurn() {
+        return currentTurn;
+    }
+    public void setCurrentTurn(String currentTurn) {
+        this.currentTurn = currentTurn;
     }
 }
 
