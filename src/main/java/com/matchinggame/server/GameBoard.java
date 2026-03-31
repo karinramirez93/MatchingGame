@@ -4,49 +4,106 @@ public class GameBoard {
     //board of cards
     private final Card[][] cards;
     private final GameDifficulty gameDifficulty;
+    private final int rowCount;
+    private final int columnCount;
 
     //constructor
     //create a new board
     public GameBoard(GameDifficulty gameDifficulty) {
         this.gameDifficulty = gameDifficulty;
-        this.cards = new Card[2][2];
+        //difficulty Easy
+        if(gameDifficulty == GameDifficulty.EASY){
+            this.rowCount = 2;
+            this.columnCount = 2;
+        }
+        //difficulty Medium
+        else if (gameDifficulty == GameDifficulty.MEDIUM) {
+            this.rowCount = 2;
+            this.columnCount = 4;
+        }
+        //difficulty hard
+        else {
+            this.rowCount = 4;
+            this.columnCount = 4;
+        }
+        //create the matrix after row/column values are known
+        this.cards = new Card[rowCount][columnCount];
         initializeBoard();
     }
+
+    public int getRowCount() {
+        return rowCount;
+    }
+    public int getColumnCount() {
+        return columnCount;
+    }
+
     /**
      * Initializes the board based on the selected difficulty.
      *
-     * For now, all difficulty levels use a small board for easier testing.
-     * Later we can expand MEDIUM and HARD to larger boards with more pairs.
+     * EASY     -> 2x2  -> 2 pairs
+     * MEDIUM   -> 2x4  -> 4 pairs
+     * HARD     -> 4x4  -> 8 pairs
      */
-    private void initializeBoard() {
-        if (gameDifficulty == GameDifficulty.EASY) {
+    private void initializeBoard(){
+        if(gameDifficulty == GameDifficulty.EASY){
+            initializeEasyBoard();
+            return;
+        }
+        if(gameDifficulty == GameDifficulty.MEDIUM){
+            initializeMediumBoard();
+            return;
+        }
+        if(gameDifficulty == GameDifficulty.HARD){
+            initializeHardBoard();
+            return;
+        }
+    }
+    private void initializeEasyBoard() {
             cards[0][0] = new Card("A");
             cards[0][1] = new Card("A");
             cards[1][0] = new Card("B");
             cards[1][1] = new Card("B");
-            return;
-        }
 
-        if (gameDifficulty == GameDifficulty.MEDIUM) {
-            cards[0][0] = new Card("C");
-            cards[0][1] = new Card("C");
-            cards[1][0] = new Card("D");
-            cards[1][1] = new Card("D");
-            return;
-        }
-
-        if (gameDifficulty == GameDifficulty.HARD) {
-            cards[0][0] = new Card("E");
-            cards[0][1] = new Card("E");
-            cards[1][0] = new Card("F");
-            cards[1][1] = new Card("F");
-        }
     }
+    private void initializeMediumBoard() {
+        cards[0][0] = new Card("A");
+        cards[0][1] = new Card("A");
+        cards[0][2] = new Card("B");
+        cards[0][3] = new Card("B");
+
+        cards[1][0] = new Card("C");
+        cards[1][1] = new Card("C");
+        cards[1][2] = new Card("D");
+        cards[1][3] = new Card("D");
+
+    }
+    private void initializeHardBoard() {
+        cards[0][0] = new Card("A");
+        cards[0][1] = new Card("A");
+        cards[0][2] = new Card("B");
+        cards[0][3] = new Card("B");
+
+        cards[1][0] = new Card("C");
+        cards[1][1] = new Card("C");
+        cards[1][2] = new Card("D");
+        cards[1][3] = new Card("D");
+
+        cards[2][0] = new Card("E");
+        cards[2][1] = new Card("E");
+        cards[2][2] = new Card("F");
+        cards[2][3] = new Card("F");
+
+        cards[3][0] = new Card("G");
+        cards[3][1] = new Card("G");
+        cards[3][2] = new Card("H");
+        cards[3][3] = new Card("H");
+
+    }
+
     //checks whether the given row and column exist on the board
-    //return true if the position is valid
     public boolean isValidPosition(int row, int column){
-        var whatToReturn = row >=0 && row < cards.length && column >= 0 && column < cards[row].length;
-        return whatToReturn;
+        return row >= 0 && row < cards.length && column >= 0 && column < cards[row].length;
     }
     //return the card at the given position
     public Card getCard(int row, int column){
@@ -57,6 +114,9 @@ public class GameBoard {
         cards[row][column].reveal();
     }
 
+    //builds a text representation of the board
+    //hidden cars are shown as "*"
+    //revealed cards show their symbol
     public String getBoardDisplay(){
         StringBuilder boardText = new StringBuilder();
 
@@ -79,7 +139,7 @@ public class GameBoard {
         }
         return boardText.toString();
     }
-    //check whether all cards in the board are matched
+    //check whether all cards in the board have been matched
     //returns true if all cards are matched
     public boolean areAllCardsMatched(){
         for(int row = 0; row < cards.length; row++){

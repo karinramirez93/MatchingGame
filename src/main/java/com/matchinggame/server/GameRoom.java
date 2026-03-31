@@ -76,15 +76,17 @@ public class GameRoom {
         }
         roomState = RoomState.MAIN_MENU;
 
+        //reset menu and difficulty choices from any previous round
         firstPlayerMenuChoice = null;
         secondPlayerMenuChoice = null;
-
         firstPlayerDifficultyChoice = null;
         secondPlayerDifficultyChoice = null;
 
+        //attach this room to both players
         firstPlayer.setGameRoom(this);
         secondPlayer.setGameRoom(this);
 
+        //tell each client who their opponent is
         firstPlayer.sendMessage("STATE:ROOM_READY: " + secondPlayer.getUsername());
         secondPlayer.sendMessage("STATE:ROOM_READY: " + firstPlayer.getUsername());
 
@@ -103,15 +105,15 @@ public class GameRoom {
 
         roomState = RoomState.PLAYING; // start game
 
+        //reset menu and difficulty state for the new match
         firstPlayerMenuChoice = null;
         secondPlayerMenuChoice = null;
-
         firstPlayerDifficultyChoice = null;
         secondPlayerDifficultyChoice = null;
 
+        //reset score and selected cards
         firstPlayerScore = 0;
         secondPlayerScore = 0;
-
         firstSelectedCard = null;
         secondSelectedCard = null;
 
@@ -119,8 +121,6 @@ public class GameRoom {
         currentTurnPlayer = firstPlayer;
         //create a new gameBoard with default difficulty (easy)
         gameBoard = new GameBoard(currentDifficulty);
-
-
 
         //notify both player that the match is ready to start
         firstPlayer.sendMessage("MATCH_READY Opponent: " + secondPlayer.getUsername());
@@ -134,6 +134,10 @@ public class GameRoom {
         firstPlayer.sendMessage("GAME_ROOM_STARTED");
         secondPlayer.sendMessage("GAME_ROOM_STARTED");
 
+        //tell the frontend how many rows and columns th board has
+        broadcastMessage("BOARD_SIZE " + gameBoard.getRowCount() + " " + gameBoard.getColumnCount());
+
+        //set initial game state
         broadcastMessage("DIFFICULTY_CONFIRMED: " + currentDifficulty.name());
         broadcastMessage("BOARD " + gameBoard.getBoardDisplay());
         broadcastMessage("TURN " + currentTurnPlayer.getUsername());
@@ -141,6 +145,9 @@ public class GameRoom {
         System.out.println("Game Room Started for " + firstPlayer.getUsername() + " Vs " + secondPlayer.getUsername());
     }
     private synchronized void showDifficultyMenu(){
+        if(roomClosed){
+            return;
+        }
         roomState = RoomState.DIFFICULTY_SELECTION;
         firstPlayerDifficultyChoice = null;
         secondPlayerDifficultyChoice = null;
@@ -153,7 +160,7 @@ public class GameRoom {
     // 2 - exit
     public synchronized void handleMenuOption(PlayerSession playerSession, String optionText){
         if(roomClosed){
-            playerSession.sendMessage("Error, ROOM_IS_CLOSED");
+            playerSession.sendMessage("ERROR, ROOM_IS_CLOSED");
             return;
         }
 
@@ -166,8 +173,9 @@ public class GameRoom {
         switch (normalizedOption){
             case "1":
                 storeMenuChoice(playerSession, "START");
+                //notify both players about the selection
                 broadcastMessage("MENU_SELECTION " + playerSession.getUsername() + " START");
-
+                //move to difficulty selection only if both players pressed "start"
                 if("START".equals(firstPlayerMenuChoice) && "START".equals(secondPlayerMenuChoice)){
                     showDifficultyMenu();
                 }
@@ -201,12 +209,12 @@ public class GameRoom {
     // 3 - hard
     public synchronized void handleDifficultyOption(PlayerSession playerSession, String difficultyText){
         if(roomClosed){
-            playerSession.sendMessage("Error, ROOM_IS_CLOSED");
+            playerSession.sendMessage("ERROR, ROOM_IS_CLOSED");
             return;
         }
 
         if(roomState != RoomState.DIFFICULTY_SELECTION){
-            playerSession.sendMessage("Error Invalid difficulty option");
+            playerSession.sendMessage("ERROR Invalid difficulty option");
             return;
         }
         GameDifficulty selectedDifficulty;
@@ -234,8 +242,10 @@ public class GameRoom {
         else if(playerSession == secondPlayer){
             secondPlayerDifficultyChoice = selectedDifficulty;
         }
+        //notify both players which difficulty was selected
         broadcastMessage("DIFFICULTY_SELECTION: " + playerSession.getUsername() + " " + selectedDifficulty);
 
+        //start the match only if both players selected the same difficulty
         if(firstPlayerDifficultyChoice != null && secondPlayerDifficultyChoice != null){
             if(firstPlayerDifficultyChoice == secondPlayerDifficultyChoice){
                 currentDifficulty = firstPlayerDifficultyChoice;
@@ -252,11 +262,11 @@ public class GameRoom {
     //handles one FLIP command while the room is in PLAYING state
     public synchronized void handleFlipCommand(PlayerSession playerSession, int row, int column){
         if(roomClosed){
-            playerSession.sendMessage("Error, ROOM_IS_CLOSED");
+            playerSession.sendMessage("ERROR, ROOM_IS_CLOSED");
             return;
         }
         if(roomState != RoomState.PLAYING){
-            playerSession.sendMessage("Error the match is not currently active");
+            playerSession.sendMessage("ERROR the match is not currently active");
             return;
         }
         if(playerSession != currentTurnPlayer){
@@ -265,14 +275,14 @@ public class GameRoom {
         }
 
         if(!gameBoard.isValidPosition(row, column)){
-            playerSession.sendMessage("Error Invalid board position");
+            playerSession.sendMessage("ERROR Invalid board position");
             return;
         }
 
         Card selectedCard = gameBoard.getCard(row, column);
 
         if (selectedCard.isRevealed()){
-            playerSession.sendMessage("Error it is already revealed");
+            playerSession.sendMessage("ERROR it is already revealed");
             return;
         }
 
@@ -292,7 +302,7 @@ public class GameRoom {
         }
         //prevent selecting the same card position twice
         if(row == firstRow && column == firstColumn){
-            playerSession.sendMessage("Error you cannot select the same card twice");
+            playerSession.sendMessage("ERROR you cannot select the same card twice");
             return;
         }
         //second Card
@@ -328,7 +338,7 @@ public class GameRoom {
                     return;
 
                 }
-                broadcastMessage("TURN: " + currentTurnPlayer.getUsername());
+                broadcastMessage("TURN " + currentTurnPlayer.getUsername());
                 return;
             }
                 broadcastMessage("NO_MATCH");
@@ -347,8 +357,16 @@ public class GameRoom {
                 secondSelectedCard = null;
 
                 switchTurn();
-                broadcastMessage("TURN: " + currentTurnPlayer.getUsername());
+                broadcastMessage("TURN " + currentTurnPlayer.getUsername());
 
+        }
+    }
+    private void switchTurn(){
+        if(currentTurnPlayer == firstPlayer){
+            currentTurnPlayer = secondPlayer;
+        }
+        else{
+            currentTurnPlayer = firstPlayer;
         }
     }
 
@@ -373,14 +391,7 @@ public class GameRoom {
         showMainMenu();
     }
 
-    private void switchTurn(){
-        if(currentTurnPlayer == firstPlayer){
-            currentTurnPlayer = secondPlayer;
-        }
-        else{
-            currentTurnPlayer = firstPlayer;
-        }
-    }
+
     private void broadcastMessage(String message){
         firstPlayer.sendMessage(message);
         secondPlayer.sendMessage(message);

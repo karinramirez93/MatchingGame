@@ -17,8 +17,17 @@ public class ClientSession {
     private String lastStatusMessage;
     private String playerRole;
     private String confirmedDifficulty;
+    private int boardRows;
+    private int boardColumns;
     private String boardDisplay;
     private String currentTurn;
+    private String currentScore;
+    private String finalScore;
+    private String winnerMessage;
+    private boolean gameOver;
+    private boolean hasRecentMatchResult;
+    private String recentFinalScore;
+    private String recentWinnerMessage;
 
     //returns the active client connection
     public ClientConnection getClientConnection() {
@@ -85,5 +94,60 @@ public class ClientSession {
     public void setCurrentTurn(String currentTurn) {
         this.currentTurn = currentTurn;
     }
+    public int getBoardRows() {
+        return boardRows;
+    }
+    public void setBoardRows(int boardRows) {
+        this.boardRows = boardRows;
+    }
+    public int getBoardColumns() {
+        return boardColumns;
+    }
+    public void setBoardColumns(int boardColumns) {
+        this.boardColumns = boardColumns;
+    }
+    public String getCurrentScore() {
+        return currentScore;
+    }
+    public void setCurrentScore(String currentScore) {
+        this.currentScore = currentScore;
+    }
+    public String getFinalScore() {
+        return finalScore;
+    }
+    public void setFinalScore(String finalScore) {
+        this.finalScore = finalScore;
+    }
+    public String getWinnerMessage() {
+        return winnerMessage;
+    }
+    public void setWinnerMessage(String winnerMessage) {
+        this.winnerMessage = winnerMessage;
+    }
+    public boolean isGameOver() {
+        return gameOver;
+    }
+    public void setGameOver(boolean gameOver) {
+        this.gameOver = gameOver;
+    }
+    public boolean isHasRecentMatchResult() {
+        return hasRecentMatchResult;
+    }
+    public void setHasRecentMatchResult(boolean hasRecentMatchResult) {
+        this.hasRecentMatchResult = hasRecentMatchResult;
+    }
+    public String getRecentFinalScore() {
+        return recentFinalScore;
+    }
+    public void setRecentFinalScore(String recentFinalScore) {
+        this.recentFinalScore = recentFinalScore;
+    }
+    public String getRecentWinnerMessage() {
+        return recentWinnerMessage;
+    }
+    public void setRecentWinnerMessage(String recentWinnerMessage) {
+        this.recentWinnerMessage = recentWinnerMessage;
+    }
+
 }
 

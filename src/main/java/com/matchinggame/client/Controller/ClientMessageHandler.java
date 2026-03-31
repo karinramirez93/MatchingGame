@@ -45,7 +45,6 @@ public class ClientMessageHandler {
                 String selection = parts[2];
 
                 if (!playerName.equalsIgnoreCase(clientSession.getUsername())) {
-                    // Here you can update a status label in the menu screen
                     clientSession.setLastStatusMessage(
                             //message that the opponent received
                             playerName + " selected " + selection + ". Choose the same option to continue."
@@ -80,6 +79,22 @@ public class ClientMessageHandler {
                     );
                 }
             }
+        }
+        //track the size of the board
+        else if (message.startsWith("BOARD_SIZE")) {
+            handled = true;
+
+            String sizeText = message.substring("BOARD_SIDE:".length()).trim();
+            String[] parts = sizeText.split(" ");
+
+            if(parts.length >= 2) {
+                int rows = Integer.parseInt(parts[0]);
+                int columns = Integer.parseInt(parts[1]);
+
+                clientSession.setBoardRows(rows);
+                clientSession.setBoardColumns(columns);
+            }
+
         }
         //server informs who the opponent is
         else if (message.startsWith("MATCH_READY Opponent:")) {
@@ -126,6 +141,56 @@ public class ClientMessageHandler {
             //refresh gamescreen to show updated turn
             sceneManager.showScene(new GameScreen(sceneManager, clientSession).createGameScreen());
 
+        }
+        // Live score update during gameplay
+        else if (message.startsWith("SCORE:")) {
+            handled = true;
+
+            String scoreText = message.substring("SCORE:".length()).trim();
+            clientSession.setCurrentScore(scoreText);
+
+            sceneManager.showScene(
+                    new GameScreen(sceneManager, clientSession).createGameScreen()
+            );
+        }
+
+        // Game over trigger
+        else if (message.equals("GAME_OVER")) {
+            handled = true;
+
+            clientSession.setGameOver(true);
+            clientSession.setLastStatusMessage("The game has ended.");
+        }
+
+        // Final score at the end of the match
+        else if (message.startsWith("FINAL_SCORE:")) {
+            handled = true;
+
+            String finalScore = message.substring("FINAL_SCORE:".length()).trim();
+            clientSession.setFinalScore(finalScore);
+            clientSession.setRecentFinalScore(finalScore);
+            clientSession.setHasRecentMatchResult(true);
+        }
+
+        // Winner message
+        else if (message.startsWith("WINNER_IS:")) {
+            handled = true;
+
+            String winner = message.substring("WINNER_IS:".length()).trim();
+            clientSession.setWinnerMessage("Winner: " + winner);
+            clientSession.setRecentWinnerMessage("Winner: " + winner);
+            clientSession.setLastStatusMessage("The winner is " + winner + ".");
+            clientSession.setHasRecentMatchResult(true);
+        }
+
+        // Draw message
+        else if (message.equals("DRAW")) {
+            handled = true;
+
+            clientSession.setWinnerMessage("Result: Draw");
+            clientSession.setRecentWinnerMessage("Result: Draw");
+            clientSession.setLastStatusMessage("Result: Draw.");
+            clientSession.setHasRecentMatchResult(true);
         }
         //if one of the player get desconnected
         else if (message.startsWith("OPPONENT_DISCONNECTED")) {

@@ -42,6 +42,43 @@ public class MenuScreen {
         Label infoLabel = new Label("Choose an option to continue.");
         infoLabel.setStyle("-fx-text-fill: black; -fx-font-size: 16px;");
 
+        // Recent match result block.
+        // It should only be visible after at least one match has finished.
+        VBox recentResultBox = new VBox(6);
+        recentResultBox.setAlignment(Pos.CENTER);
+        recentResultBox.setPadding(new Insets(12));
+        recentResultBox.setStyle(
+                "-fx-background-color: #dff5e3;" +
+                        "-fx-border-color: #7bbf8a;" +
+                        "-fx-border-radius: 8;" +
+                        "-fx-background-radius: 8;"
+        );
+
+        if (clientSession.isHasRecentMatchResult()) {
+            Label resultTitleLabel = new Label("Last Match Result");
+            resultTitleLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: #1f6b34;");
+
+            Label winnerResultLabel = new Label(
+                    clientSession.getRecentWinnerMessage() != null
+                            ? clientSession.getRecentWinnerMessage()
+                            : "Result not available"
+            );
+            winnerResultLabel.setStyle("-fx-text-fill: #1f6b34;");
+
+            Label scoreResultLabel = new Label(
+                    clientSession.getRecentFinalScore() != null
+                            ? "Score: " + clientSession.getRecentFinalScore()
+                            : "Score not available"
+            );
+            scoreResultLabel.setStyle("-fx-text-fill: #1f6b34;");
+
+            recentResultBox.getChildren().addAll(
+                    resultTitleLabel,
+                    winnerResultLabel,
+                    scoreResultLabel
+            );
+        }
+
         //Status label used to show what the player selects
         Label statusLabel = new Label();
 
@@ -83,11 +120,36 @@ public class MenuScreen {
         buttonBox.setAlignment(Pos.CENTER);
 
 
-        VBox root = new VBox(25 ,  titleLabel, playersBox, infoLabel, buttonBox, statusLabel);
+        VBox root;
+
+        // screen layout after a recent match ended previously
+        if (clientSession.isHasRecentMatchResult()) {
+            root = new VBox(
+                    20,
+                    titleLabel,
+                    playersBox,
+                    recentResultBox,
+                    infoLabel,
+                    buttonBox,
+                    statusLabel
+            );
+        }
+        //main layout screen; first menu screen players see for first time
+        else {
+            root = new VBox(
+                    20,
+                    titleLabel,
+                    playersBox,
+                    infoLabel,
+                    buttonBox,
+                    statusLabel
+            );
+        }
         root.setAlignment(Pos.TOP_CENTER);
         root.setPadding(new Insets(25));
 
-        return new Scene(root, 450, 320);
+        //window layout
+        return new Scene(root, 450, 400);
     }
 
 
